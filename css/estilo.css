@@ -56,3 +56,9 @@ footer p {
     height: 250px;
   }
 }
+
+.separador-crud {
+  margin-top: 50px;
+  padding-top: 30px;
+  border-top: 2px solid #ccc;
+}
