@@ -78,6 +78,25 @@
             </form>
           </div>
         </div>
+
+        <!-- Tabla CRUD -->
+        <div class="mt-5">
+          <h4 class="text-center mb-3">Contactos guardados</h4>
+          <table class="table table-bordered" id="tablaContactos">
+            <thead class="thead-light">
+              <tr>
+                <th>Nombre</th>
+                <th>Teléfono</th>
+                <th>Email</th>
+                <th>País</th>
+                <th>Mensaje</th>
+                <th>Acciones</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+
       </div>
 
       <div class="col-lg-6 d-flex flex-column align-items-center justify-content-center">
@@ -120,9 +139,114 @@
     <p>&copy; 2025 MongoDB Web. Todos los derechos reservados.</p>
   </footer>
 
-  <!-- Scripts -->
   <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.5.3/dist/js/bootstrap.bundle.min.js"></script>
+
+  <script>
+    $(document).ready(function () {
+      const paisSelect = $('#pais');
+      const nombreOficialInput = $('#nombreOficial');
+
+      fetch('https://restcountries.com/v3.1/lang/spanish')
+        .then(response => response.json())
+        .then(data => {
+          data.forEach(pais => {
+            const nombreComun = pais.name.common;
+            const nombreOficial = pais.name.official;
+            paisSelect.append(`<option value="${nombreOficial}">${nombreComun}</option>`);
+          });
+        })
+        .catch(error => console.error('Error al cargar países:', error));
+
+      paisSelect.on('change', function () {
+        const selectedValue = $(this).val();
+        nombreOficialInput.val(selectedValue);
+      });
+
+      $('#formularioContacto').on('submit', function (e) {
+        e.preventDefault();
+
+        const datos = {
+          nombre: $('#nombre').val().trim(),
+          telefono: $('#telefono').val().trim(),
+          email: $('#email').val().trim(),
+          pais: $('#pais option:selected').text(),
+          nombreOficial: $('#nombreOficial').val().trim(),
+          mensaje: $('#mensaje').val().trim()
+        };
+
+        if (Object.values(datos).some(valor => valor === '')) {
+          alert('Todos los campos deben estar completos.');
+          return;
+        }
+
+        let contactos = JSON.parse(localStorage.getItem('contactos')) || [];
+        const editIndex = $(this).data('editIndex');
+
+        if (editIndex !== undefined) {
+          contactos[editIndex] = datos;
+          $(this).removeData('editIndex');
+        } else {
+          contactos.push(datos);
+        }
+
+        localStorage.setItem('contactos', JSON.stringify(contactos));
+        alert('Datos guardados correctamente.');
+        this.reset();
+        $('#nombreOficial').val('');
+        mostrarContactos();
+      });
+
+      $(document).on('click', '.eliminar', function () {
+        const index = $(this).data('index');
+        let contactos = JSON.parse(localStorage.getItem('contactos')) || [];
+        if (confirm('¿Estás seguro de eliminar este contacto?')) {
+          contactos.splice(index, 1);
+          localStorage.setItem('contactos', JSON.stringify(contactos));
+          mostrarContactos();
+        }
+      });
+
+      $(document).on('click', '.editar', function () {
+        const index = $(this).data('index');
+        const contactos = JSON.parse(localStorage.getItem('contactos')) || [];
+        const c = contactos[index];
+
+        $('#nombre').val(c.nombre);
+        $('#telefono').val(c.telefono);
+        $('#email').val(c.email);
+        $('#pais').val(c.nombreOficial).change();
+        $('#mensaje').val(c.mensaje);
+
+        $('#formularioContacto').data('editIndex', index);
+      });
+
+      function mostrarContactos() {
+        const contactos = JSON.parse(localStorage.getItem('contactos')) || [];
+        const tbody = $('#tablaContactos tbody');
+        tbody.empty();
+
+        contactos.forEach((c, i) => {
+          const fila = `
+            <tr>
+              <td>${c.nombre}</td>
+              <td>${c.telefono}</td>
+              <td>${c.email}</td>
+              <td>${c.pais}</td>
+              <td>${c.mensaje}</td>
+              <td>
+                <button class="btn btn-sm btn-primary editar" data-index="${i}">Editar</button>
+                <button class="btn btn-sm btn-danger eliminar" data-index="${i}">Eliminar</button>
+              </td>
+            </tr>
+          `;
+          tbody.append(fila);
+        });
+      }
+
+      mostrarContactos();
+    });
+  </script>
 </body>
 
 </html>
